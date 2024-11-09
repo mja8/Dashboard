@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BsThreeDotsVertical, BsPerson } from 'react-icons/bs';
 import { AiOutlineMenu, AiOutlineClose } from 'react-icons/ai';
 import axios from 'axios';
-import { useSelector } from "react-redux"
+import { useNavigate } from 'react-router-dom'; // Assuming you are using react-router-dom for navigation
 
-//metricRow for displaying scores
 const MetricRow = ({ icon, title, value, status, color }) => (
   <div className="flex items-center justify-between mb-6 p-4 transition-transform transform hover:scale-105 rounded-lg shadow-md bg-white hover:shadow-lg">
     <div className="flex items-center gap-4">
@@ -27,28 +26,27 @@ const MetricRow = ({ icon, title, value, status, color }) => (
 );
 
 const Dashboard = () => {
-  // const user = useSelector(state => state.user);
-  const userId = "6714f6b7e08a34409125cc0c"; // user.user._id;
+  const userId = "671a2da9af9bcc1085287531"; // Placeholder userId
   const [metrics, setMetrics] = useState([]);
   const [overallScore, setOverallScore] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [latestCompleteAttempt, setLatestCompleteAttempt] = useState(null);
 
-  //function to fetch data from API
+  const navigate = useNavigate(); // Used for navigation between pages
+
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
         const response = await axios.get(
           "http://localhost:3000/user-assessment/latest-attempt",
           {
-            headers: {
-              userid: userId,
-            },
+            headers: { userid: userId }
           }
         );
         const { latestCompleteAttempt } = response.data;
 
         if (latestCompleteAttempt) {
-          // Map category IDs to titles and colors
+          setLatestCompleteAttempt(true);
           const categoryTitles = {
             "6720b4b7138ac4c27924dbf2": "Physical Fitness",
             "6722653e8aebf1c473d1672b": "Mental Wellness",
@@ -68,16 +66,13 @@ const Dashboard = () => {
             const color = categoryColors[assessment.categoryId] || "#34495e";
             const status = assessment.totalScore >= 80 ? 'Excellent' : assessment.totalScore >= 50 ? 'Good' : 'Needs Improvement';
 
-            return {
-              title,
-              value: assessment.totalScore,
-              status,
-              color
-            };
+            return { title, value: assessment.totalScore, status, color };
           });
 
           setMetrics(updatedMetrics);
           setOverallScore(latestCompleteAttempt.overallScore);
+        } else {
+          setLatestCompleteAttempt(false);
         }
       } catch (error) {
         console.error('Error fetching latest assessment attempt:', error.message);
@@ -87,6 +82,14 @@ const Dashboard = () => {
 
     fetchMetrics();
   }, []);
+
+  const handleButtonClick = () => {
+    if (latestCompleteAttempt) {
+      navigate('/NewUserAssessmentPage'); // Navigate to NewUserAssessmentPage
+    } else {
+      navigate('/AssessmentPage'); // Navigate to AssessmentPage
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -98,11 +101,6 @@ const Dashboard = () => {
              zIndex: 30
            }}>
         <div className="p-6">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="relative">
-            </div>
-          </div>
-          
           <nav className="space-y-4">
             {['Home', 'Assessment Report', 'Your Score History', 'Leaderboard', 'Accounts', 'Settings'].map((item, i) => (
               <a
@@ -132,13 +130,8 @@ const Dashboard = () => {
         <header className="flex justify-between items-center p-4 bg-white shadow-md">
           <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
         </header>
-  
+
         <main className="p-8 flex-1 overflow-y-auto">
-          {/* Current Score */}
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Your Current Score</h2>
-          </div>
-  
           {/* Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {metrics.map((metric, index) => (
@@ -152,7 +145,7 @@ const Dashboard = () => {
               />
             ))}
           </div>
-  
+
           {/* Overall Score */}
           {overallScore !== null && (
             <div className="mt-6">
@@ -166,17 +159,24 @@ const Dashboard = () => {
               />
             </div>
           )}
-  
+
           {/* Consult Card */}
           <div className="bg-white p-6 rounded-xl shadow-md mt-6">
             <div className="flex justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">You can Re-Take Assessment to update your score</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {latestCompleteAttempt
+                    ? "You can Re-Take Assessment to update your score"
+                    : "Complete the remaining tests to get your score!"}
+                </h3>
                 <p className="text-gray-500 text-sm max-w-md">
                   Discover your health insights and unlock a better you with Health Check Pro!
                 </p>
-                <button className="mt-4 bg-black text-white px-4 py-2 rounded-lg text-sm transition-colors duration-300 hover:bg-gray-800">
-                  Take Re-Test To Update Score
+                <button
+                  className="mt-4 bg-black text-white px-4 py-2 rounded-lg text-sm transition-colors duration-300 hover:bg-gray-800"
+                  onClick={handleButtonClick}
+                >
+                  {latestCompleteAttempt ? "Take Re-Test To Update Score" : "Continue Assessment"}
                 </button>
               </div>
               <img
@@ -187,7 +187,7 @@ const Dashboard = () => {
             </div>
           </div>
         </main>
-  
+
         {/* Footer */}
         <footer className="bg-gray-800 text-white p-4">
           <div className="container mx-auto flex justify-between">
